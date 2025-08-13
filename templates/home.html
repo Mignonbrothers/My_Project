@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>메인 화면</title>
+  <style>
+    body{
+      margin:0; min-height:100vh;
+      display:flex; justify-content:center; align-items:center;
+      font-family:Arial, sans-serif; color:#fff;
+      text-shadow:2px 2px 4px rgba(0,0,0,.5);
+      background: linear-gradient(120deg,#8ec5fc,#b3e5fc,#e1f5fe,#a1c4fd);
+      background-size:400% 400%;
+      animation: sky 12s ease infinite;
+    }
+    @keyframes sky{
+      0%{background-position:0% 50%}
+      50%{background-position:100% 50%}
+      100%{background-position:0% 50%}
+    }
+    button{
+      font-size:1.2em; padding:14px 28px;
+      background:#ff9800; color:#fff; border:0; border-radius:10px;
+      box-shadow:0 4px 6px rgba(0,0,0,.3); cursor:pointer;
+      transition:transform .2s ease, background .2s ease;
+      margin: 10px 0; /* 버튼 사이 간격 */
+      width: 280px; /* 버튼 폭 통일 */
+    }
+    
+    button:hover{ transform:scale(1.05); background:#e68900; }
+    .content {
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .content h1 {
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .content p {
+      margin-bottom: 30px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <h1>환영합니다 👋</h1>
+    <p>아래 기능 중 원하는 서비스를 선택하세요.</p>
+    <form action="/weather" method="get">
+      <button type="submit">🌤️ 전 세계 도시 날씨 예보 보기</button>
+    </form>
+    <form action="/ai_route" method="get">
+      <button type="submit">🗺️🧠 AI 기반 최적 주행 경로 추천</button>
+    </form>
+  </div>
+</body>
+</html>

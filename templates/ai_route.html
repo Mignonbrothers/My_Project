@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI 경로 추천</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; }
+    .card { border: 1px solid #eee; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; }
+    .muted { color:#666; }
+    #map { height: 420px; border-radius: 12px; border:1px solid #eee; }
+  </style>
+
+  <!-- Leaflet (지도) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+</head>
+<body>
+  <a href="/">← 메인으로</a>
+  <h1>추천 경로</h1>
+
+  {% if error %}
+    <div class="card" style="border-color:#f2a2a2; background:#fff8f8;">
+      <div style="font-weight:600; margin-bottom:6px;">오류</div>
+      <div>{{ error }}</div>
+      <div class="muted" style="margin-top:8px;">※ Directions 15 구독/키/엔드포인트/전파시간을 확인해 보세요.</div>
+    </div>
+  {% endif %}
+
+  {% if routes %}
+    {% set r = routes[0] %}
+    <div class="card">
+      <div><strong>타입:</strong> {{ r.type }}</div>
+      <div><strong>예상 소요:</strong> {{ r.duration_min }}분</div>
+      <div><strong>거리:</strong> {{ r.distance_km }} km</div>
+      <div><strong>톨게이트:</strong> {{ "{:,}".format(r.toll) }}원 / 
+           <strong>연료비(추정):</strong> {{ "{:,}".format(r.fuel|int) }}원</div>
+    </div>
+
+    <!-- 지도 -->
+    <div id="map" class="card"></div>
+
+    <!-- 안전한 JSON 주입 -->
+    <script id="route-data" type="application/json">
+      {{ (r.path or []) | tojson | safe }}
+    </script>
+
+    <script>
+      // JSON 파싱
+      const pathLngLat = JSON.parse(document.getElementById('route-data').textContent || '[]');
+      const pathLatLng = pathLngLat.map(p => [p[1], p[0]]);
+
+      if (pathLatLng.length > 0) {
+        const mid = pathLatLng[Math.floor(pathLatLng.length / 2)];
+        const map = L.map('map').setView(mid, 12);
+
+        // 배경지도
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        // 경로 polyline
+        const line = L.polyline(pathLatLng, { weight: 5 }).addTo(map);
+        map.fitBounds(line.getBounds(), { padding: [24, 24] });
+
+        // 시작/도착 마커
+        L.marker(pathLatLng[0]).addTo(map).bindPopup("출발지");
+        L.marker(pathLatLng[pathLatLng.length - 1]).addTo(map).bindPopup("도착지");
+      }
+    </script>
+
+  {% else %}
+    <div class="card">아직 경로가 없습니다. 출발지/목적지를 입력해 보세요.</div>
+  {% endif %}
+
+  <!-- 입력 폼 -->
+  <div class="card">
+    <form method="POST">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input name="start" placeholder="출발지 (예: 서울역)" style="flex:1; min-width:260px; padding:8px;" required>
+        <input name="end"   placeholder="도착지 (예: 인천공항)" style="flex:1; min-width:260px; padding:8px;" required>
+        <button type="submit" style="padding:8px 16px;">경로 추천 받기</button>
+      </div>
+      <div class="muted" style="margin-top:6px;">주소/장소명 모두 가능합니다. (주소→지오코딩, 장소명→Local 검색 폴백)</div>
+    </form>
+  </div>
+</body>
+</html>

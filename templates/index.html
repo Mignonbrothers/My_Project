@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>날씨 예보</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 800px; margin: 32px auto; padding: 0 16px; }
+    .card { border: 1px solid #eee; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .row { display:flex; align-items:center; gap:12px; }
+    .muted { color:#666; }
+    img.graph { width:100%; max-width:100%; height:auto; border-radius: 8px; border:1px solid #eee; }
+    a { text-decoration:none; }
+
+    /* 줄 간격 소폭 확대 */
+    .card p, .card li { line-height: 1.6; }
+
+    /* 세차 점수 표시 */
+    .score-text { margin: 0; font-size: 24px; font-weight: bold; }
+    .score-good { color: #1d8f35; } /* 초록 */
+    .score-ok   { color: #e4a80e; } /* 노랑 */
+    .score-bad  { color: #c73535; } /* 빨강 */
+
+    /* AQI 배지 */
+    .badge { display:inline-block; padding:4px 8px; border-radius:8px; font-size:12px; color:#fff; }
+    .badge-good     { background:#2e7d32; }  /* 1 좋음 */
+    .badge-fair     { background:#558b2f; }  /* 2 보통 */
+    .badge-moderate { background:#f9a825; }  /* 3 약간 나쁨 */
+    .badge-poor     { background:#ef6c00; }  /* 4 나쁨 */
+    .badge-verypoor { background:#c62828; }  /* 5 매우 나쁨 */
+  </style>
+</head>
+<body>
+  <a href="/">← 메인으로</a>
+  <h1>전 세계 도시 날씨 예보</h1>
+
+  <form method="POST" class="card">
+    <label for="city">도시 이름</label><br/>
+    <input id="city" name="city" placeholder="예: Tokyo, Paris, New York" required style="width:70%; padding:8px;">
+    <button type="submit" style="padding:8px 12px;">조회</button>
+    <p class="muted">도시만 입력해도 됩니다. (좌표 자동 탐색)</p>
+  </form>
+
+  {% if error %}
+    <div class="card" style="border-color:#f2a2a2; background:#fff8f8;">오류: {{ error }}</div>
+  {% endif %}
+
+  {% if weather %}
+    <div class="card">
+      <div class="row">
+        <img src="{{ weather.icon_url }}" alt="현재 날씨 아이콘" width="64" height="64">
+        <div>
+          <h2 style="margin:0;">{{ weather.city }} ({{ weather.country }})</h2>
+          <div class="muted">{{ weather.desc }}</div>
+          <div style="font-size:20px; font-weight:600;">{{ "%.1f"|format(weather.temp) }}°C</div>
+
+          {# AQI 배지 (대기질 정보가 있을 때만) #}
+          {% if weather.air %}
+            {% set aqi = weather.air.main.aqi %}
+            {% set aqi_class = 'badge-good' %}
+            {% set aqi_text = '좋음' %}
+            {% if aqi == 2 %}{% set aqi_class = 'badge-fair' %}{% set aqi_text = '보통' %}{% endif %}
+            {% if aqi == 3 %}{% set aqi_class = 'badge-moderate' %}{% set aqi_text = '약간 나쁨' %}{% endif %}
+            {% if aqi == 4 %}{% set aqi_class = 'badge-poor' %}{% set aqi_text = '나쁨' %}{% endif %}
+            {% if aqi == 5 %}{% set aqi_class = 'badge-verypoor' %}{% set aqi_text = '매우 나쁨' %}{% endif %}
+            <div style="margin-top:6px;">
+              <span class="badge {{ aqi_class }}">공기질 {{ aqi_text }} (AQI {{ aqi }})</span>
+              {% if weather.air.components and weather.air.components.pm2_5 is defined %}
+                <span class="muted" style="margin-left:8px;">PM2.5: {{ "%.1f"|format(weather.air.components.pm2_5) }}µg/m³</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div style="height:16px;"></div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">5일 기온(평균/최고/최저)</h3>
+      <a href="{{ url_for('static', filename=weather.graph) }}" target="_blank" rel="noopener">
+        <img class="graph"
+             src="{{ url_for('static', filename=weather.graph) }}?ts={{ range(1,999999)|random }}"
+             alt="예보 그래프" style="cursor:pointer;">
+      </a>
+    </div>
+  {% endif %}
+
+  <div style="height:16px;"></div>
+
+  {% if weather and weather.convenience %}
+    <div class="card">
+      <h3 style="margin-top:0;">생활 편의</h3>
+
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <!-- 세차 지수 -->
+        <div class="card" style="flex:1; min-width:260px;">
+          <h4 style="margin:0 0 8px;">세차 지수</h4>
+
+          {% set score = weather.convenience.carwash.score %}
+          {% if score >= 80 %}
+            {% set score_icon = '✨' %}{% set score_class = 'score-good' %}
+          {% elif score >= 50 %}
+            {% set score_icon = '👍' %}{% set score_class = 'score-ok' %}
+          {% else %}
+            {% set score_icon = '👎' %}{% set score_class = 'score-bad' %}
+          {% endif %}
+
+          <p class="score-text {{ score_class }}">
+            {{ score_icon }} {{ score }}점
+          </p>
+          {% if score >= 80 %}
+            <p class="muted" style="margin:4px 0 0;">세차하기 딱 좋은 날씨예요!</p>
+          {% elif score >= 50 %}
+            <p class="muted" style="margin:4px 0 0;">무난하지만, 바람/먼지에 유의하세요.</p>
+          {% else %}
+            <p class="muted" style="margin:4px 0 0;">오늘은 세차를 미루는 게 좋아요.</p>
+          {% endif %}
+
+          <ul style="margin:8px 0 0; padding-left: 18px; font-size: 14px; color: #666;">
+            {% for r in weather.convenience.carwash.reasons %}
+              <li>{{ r }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- 주차 팁 -->
+        <div class="card" style="flex:1; min-width:260px;">
+          <h4 style="margin:0 0 8px;">주차 팁</h4>
+
+          {% set pk = weather.convenience.parking.tip %}
+          {% if '실내' in pk %}
+            {% set pk_icon = '🏠' %}
+          {% else %}
+            {% set pk_icon = '🅿️' %}
+          {% endif %}
+
+          <p style="margin:0;">
+            <strong>{{ pk_icon }} {{ weather.convenience.parking.tip }}</strong>
+          </p>
+
+          <ul style="margin:6px 0 0 18px;">
+            {% for r in weather.convenience.parking.reasons %}
+              <li>
+                {% if '강풍' in r %}💨{% elif '강수' in r or '적설' in r %}🌧️{% elif '없음' in r %}✅{% else %}•{% endif %}
+                {{ " " ~ r }}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+</body>
+</html>
