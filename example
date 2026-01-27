@@ -1,0 +1,7 @@
+# 네이버 클라우드 플랫폼 (Maps, Geocoding용)
+NCLOUD_API_KEY_ID=vaart6riw5
+NCLOUD_API_KEY=7Qxvw3Tt3JfqmSVfBZzZgTqWUOgPIrcVivlW1uJV
+
+# 네이버 개발자 센터 (지역 검색용)
+NAVER_CLIENT_ID=wYYiP91Ae4QDtOkQtp5G
+NAVER_CLIENT_SECRET=Uax7cz6u_X
